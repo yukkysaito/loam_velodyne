@@ -39,11 +39,11 @@ namespace loam
 LaserMapping::LaserMapping(const float& scanPeriod, const size_t& maxIterations)
 {
    // initialize mapping odometry and odometry tf messages
-   _odomAftMapped.header.frame_id = "/camera_init";
-   _odomAftMapped.child_frame_id = "/aft_mapped";
+   _odomAftMapped.header.frame_id = "map";
+   _odomAftMapped.child_frame_id = "loam_velodyne/base_link";
 
-   _aftMappedTrans.frame_id_ = "/camera_init";
-   _aftMappedTrans.child_frame_id_ = "/aft_mapped";
+   _aftMappedTrans.frame_id_ = "map";
+   _aftMappedTrans.child_frame_id_ = "loam_velodyne/base_link";
 }
 
 
@@ -155,6 +155,7 @@ bool LaserMapping::setup(ros::NodeHandle& node, ros::NodeHandle& privateNode)
    _pubLaserCloudSurround = node.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surround", 1);
    _pubLaserCloudFullRes  = node.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_registered", 2);
    _pubOdomAftMapped      = node.advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 5);
+   _pubOdomPose           = node.advertise<geometry_msgs::PoseStamped>("/current_pose", 1);
 
    // subscribe to laser odometry topics
    _subLaserCloudCornerLast = node.subscribe<sensor_msgs::PointCloud2>
@@ -277,10 +278,10 @@ void LaserMapping::publishResult()
 {
    // publish new map cloud according to the input output ratio
    if (hasFreshMap()) // publish new map cloud
-      publishCloudMsg(_pubLaserCloudSurround, laserCloudSurroundDS(), _timeLaserOdometry, "/camera_init");
+      publishCloudMsg(_pubLaserCloudSurround, laserCloudSurroundDS(), _timeLaserOdometry, "map");
 
    // publish transformed full resolution input cloud
-   publishCloudMsg(_pubLaserCloudFullRes, laserCloud(), _timeLaserOdometry, "/camera_init");
+   publishCloudMsg(_pubLaserCloudFullRes, laserCloud(), _timeLaserOdometry, "map");
 
    // publish odometry after mapped transformations
    geometry_msgs::Quaternion geoQuat = tf::createQuaternionMsgFromRollPitchYaw
@@ -308,6 +309,21 @@ void LaserMapping::publishResult()
                                          transformAftMapped().pos.y(),
                                          transformAftMapped().pos.z()));
    _tfBroadcaster.sendTransform(_aftMappedTrans);
+
+   geometry_msgs::PoseStamped pose_stamped;
+   pose_stamped.header.frame_id = "map";
+   pose_stamped.header.stamp = _timeLaserOdometry;
+   pose_stamped.pose = _odomAftMapped.pose.pose;
+   tf::Quaternion quat_map2locam_velodyne_base_link;
+   tf::Quaternion quat_locam_velodyne_base_link2base_link = tf::createQuaternionFromRPY(-1.57079632679, 0.0, 0.0);;
+   tf::Quaternion quat_map2base_link;
+   
+    quaternionMsgToTF(pose_stamped.pose.orientation , quat_map2locam_velodyne_base_link);
+
+   quat_map2base_link = quat_map2locam_velodyne_base_link * quat_locam_velodyne_base_link2base_link;
+   quaternionTFToMsg(quat_map2base_link , pose_stamped.pose.orientation);
+   // tf2::fromMsg(pose_stamped.pose.orientation, quat_map2locam_velodyne_base_link);
+   _pubOdomPose.publish(pose_stamped);
 }
 
 } // end namespace loam

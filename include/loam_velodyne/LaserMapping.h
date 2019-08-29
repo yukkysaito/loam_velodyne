@@ -128,6 +128,7 @@ private:
    ros::Publisher _pubLaserCloudSurround;    ///< map cloud message publisher
    ros::Publisher _pubLaserCloudFullRes;     ///< current full resolution cloud message publisher
    ros::Publisher _pubOdomAftMapped;         ///< mapping odometry publisher
+   ros::Publisher _pubOdomPose;              ///< odometry pose publisher
    tf::TransformBroadcaster _tfBroadcaster;  ///< mapping odometry transform broadcaster
 
    ros::Subscriber _subLaserCloudCornerLast;   ///< last corner cloud message subscriber
