@@ -317,7 +317,7 @@ namespace loam
     _tfBroadcaster.sendTransform(_laserOdometryTrans);
 
     // publish cloud results according to the input output ratio
-    if (_ioRatio < 2 || frameCount() % _ioRatio == 1)
+    if (_ioRatio < 2 || frameCount() % _ioRatio == 1 || true)
     {
       ros::Time sweepTime = _timeSurfPointsLessFlat;
       publishCloudMsg(_pubLaserCloudCornerLast, *lastCornerCloud(), sweepTime, "/camera");
